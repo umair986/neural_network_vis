@@ -14,6 +14,7 @@ An interactive web application that analyzes and visualizes neural network archi
 ## Tech Stack
 
 ### Frontend
+
 - React 19
 - Monaco Editor (VS Code editor)
 - shadcn/ui components
@@ -22,6 +23,7 @@ An interactive web application that analyzes and visualizes neural network archi
 - Axios for API calls
 
 ### Backend
+
 - FastAPI (Python web framework)
 - MongoDB (database)
 - Motor (async MongoDB driver)
@@ -39,28 +41,33 @@ An interactive web application that analyzes and visualizes neural network archi
 ### Backend Setup
 
 1. Navigate to the backend directory:
+
 ```bash
 cd backend
 ```
 
 2. Create a virtual environment (optional but recommended):
+
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 3. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 4. Create a `.env` file in the backend directory with the following variables:
+
 ```env
 MONGO_URL=your_mongodb_connection_string
 DB_NAME=your_database_name
 ```
 
 5. Start the FastAPI server:
+
 ```bash
 uvicorn server:app --reload
 ```
@@ -70,21 +77,25 @@ The backend will run on `http://localhost:8000`
 ### Frontend Setup
 
 1. Navigate to the frontend directory:
+
 ```bash
 cd frontend
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Create a `.env` file in the frontend directory:
+
 ```env
 REACT_APP_BACKEND_URL=http://localhost:8000
 ```
 
 4. Start the development server:
+
 ```bash
 npm start
 ```
@@ -96,6 +107,7 @@ The frontend will run on `http://localhost:3001` (or 3000 if available)
 1. **Open the Application**: Navigate to `http://localhost:3001` in your browser
 
 2. **Enter Your Code**: Paste or type your neural network code in the editor. Example:
+
 ```python
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -110,7 +122,7 @@ model = keras.Sequential([
 
 3. **Analyze**: Click the "Analyze" button to process your code
 
-4. **Explore**: 
+4. **Explore**:
    - View the visual graph representation of your model
    - Click on nodes to see detailed layer information
    - Hover over connections to understand data flow
@@ -136,9 +148,11 @@ NN-visual/
 ## API Endpoints
 
 ### POST `/api/analyze-code`
+
 Analyzes neural network code and returns structured layer information.
 
 **Request Body:**
+
 ```json
 {
   "code": "string",
@@ -147,6 +161,7 @@ Analyzes neural network code and returns structured layer information.
 ```
 
 **Response:**
+
 ```json
 {
   "layers": [...],
@@ -160,11 +175,13 @@ Analyzes neural network code and returns structured layer information.
 ### Available Scripts
 
 **Frontend:**
+
 - `npm start` - Run development server
 - `npm build` - Build for production
 - `npm test` - Run tests
 
 **Backend:**
+
 - `uvicorn server:app --reload` - Run development server with auto-reload
 
 ## Contributing
