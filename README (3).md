@@ -8,7 +8,7 @@ An interactive web application that analyzes and visualizes neural network archi
 - 🔍 **Code Analysis**: AI-powered code parsing to extract model architecture
 - 📊 **Layer Details**: View detailed information about each layer including parameters, shapes, and descriptions
 - 💡 **Real-time Editor**: Built-in Monaco code editor with syntax highlighting
-- 🎯 **Framework Support**: Works with TensorFlow/Keras and PyTorch models
+- 🎯 **Framework Support**: Works with TensorFlow/Keras, PyTorch, JAX/Flax, Hugging Face Transformers, FastAI, PyTorch Lightning, MXNet, PaddlePaddle, Scikit-learn, XGBoost, and more
 - 📱 **Responsive Design**: Modern UI built with React and shadcn/ui components
 
 ## Tech Stack
@@ -27,7 +27,7 @@ An interactive web application that analyzes and visualizes neural network archi
 - FastAPI (Python web framework)
 - MongoDB (database)
 - Motor (async MongoDB driver)
-- Emergent Integrations LLM Chat (AI-powered code analysis)
+- Google Gemini AI (AI-powered code analysis)
 
 ## Prerequisites
 
