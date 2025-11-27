@@ -10,7 +10,8 @@ from typing import List, Dict, Any, Optional
 import uuid
 from datetime import datetime, timezone
 import re
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+import json
+import google.generativeai as genai
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -74,20 +75,21 @@ class VisualizationRecord(BaseModel):
 # ML Code Parser with Gemini AI
 class GeminiMLCodeParser:
     def __init__(self):
-        self.api_key = os.environ.get('GEMINI_API_KEY') or os.environ.get('EMERGENT_LLM_KEY')
+        self.api_key = os.environ.get('GEMINI_API_KEY')
         self.framework = None
         self.warnings = []
+        
+        if not self.api_key:
+            logging.error("GEMINI_API_KEY not found in environment variables")
     
     async def parse(self, code: str) -> Dict[str, Any]:
         """Main parsing function using Gemini AI"""
         try:
-            # Detect framework
-            self.framework = self._detect_framework(code)
-            
-            if not self.framework:
+            # Check API key
+            if not self.api_key:
                 return {
                     'success': False,
-                    'error': 'Unable to detect ML/DL framework. Please use TensorFlow/Keras, PyTorch, or Scikit-learn.',
+                    'error': 'Gemini API key not configured. Please set GEMINI_API_KEY in backend/.env',
                     'framework': None,
                     'model_type': None,
                     'layers': [],
@@ -95,6 +97,12 @@ class GeminiMLCodeParser:
                     'architecture_summary': None,
                     'warnings': []
                 }
+            
+            # Detect framework
+            self.framework = self._detect_framework(code)
+            
+            # Log detected framework
+            logging.info(f"Detected framework: {self.framework}")
             
             # Use Gemini to analyze the code
             analysis = await self._analyze_with_gemini(code, self.framework)
@@ -114,15 +122,82 @@ class GeminiMLCodeParser:
             }
     
     def _detect_framework(self, code: str) -> Optional[str]:
-        """Detect ML framework from code"""
+        """Detect ML/DL framework from code"""
         code_lower = code.lower()
-        if 'tensorflow' in code_lower or 'keras' in code_lower:
-            return 'Keras/TensorFlow'
-        elif 'torch' in code_lower or 'nn.module' in code_lower:
+        
+        # TensorFlow / Keras
+        if any(kw in code_lower for kw in ['tensorflow', 'keras', 'tf.keras', 'from tf', 'import tf']):
+            return 'TensorFlow/Keras'
+        
+        # PyTorch
+        if any(kw in code_lower for kw in ['torch', 'nn.module', 'pytorch', 'from torch', 'import torch']):
             return 'PyTorch'
-        elif 'sklearn' in code_lower or 'from sklearn' in code:
+        
+        # JAX / Flax / Haiku
+        if any(kw in code_lower for kw in ['jax', 'flax', 'haiku', 'from jax', 'import jax', 'jax.numpy']):
+            return 'JAX/Flax'
+        
+        # MXNet / Gluon
+        if any(kw in code_lower for kw in ['mxnet', 'gluon', 'from mxnet', 'import mxnet']):
+            return 'MXNet/Gluon'
+        
+        # PaddlePaddle
+        if any(kw in code_lower for kw in ['paddle', 'paddlepaddle', 'from paddle', 'import paddle']):
+            return 'PaddlePaddle'
+        
+        # Caffe
+        if any(kw in code_lower for kw in ['caffe', 'from caffe', 'import caffe']):
+            return 'Caffe'
+        
+        # ONNX
+        if any(kw in code_lower for kw in ['onnx', 'from onnx', 'import onnx']):
+            return 'ONNX'
+        
+        # Hugging Face Transformers
+        if any(kw in code_lower for kw in ['transformers', 'from transformers', 'huggingface', 'automodel', 'autotokenizer', 'bertmodel', 'gptmodel']):
+            return 'Hugging Face Transformers'
+        
+        # FastAI
+        if any(kw in code_lower for kw in ['fastai', 'from fastai', 'import fastai', 'learner', 'databunch']):
+            return 'FastAI'
+        
+        # Lightning (PyTorch Lightning)
+        if any(kw in code_lower for kw in ['lightning', 'pytorch_lightning', 'pl.lightningmodule', 'from lightning']):
+            return 'PyTorch Lightning'
+        
+        # Scikit-learn
+        if any(kw in code_lower for kw in ['sklearn', 'scikit-learn', 'from sklearn', 'import sklearn']):
             return 'Scikit-learn'
-        return None
+        
+        # XGBoost / LightGBM / CatBoost
+        if any(kw in code_lower for kw in ['xgboost', 'xgb', 'lightgbm', 'lgb', 'catboost']):
+            return 'Gradient Boosting (XGBoost/LightGBM/CatBoost)'
+        
+        # Theano (legacy)
+        if any(kw in code_lower for kw in ['theano', 'from theano', 'import theano']):
+            return 'Theano'
+        
+        # CNTK (legacy)
+        if any(kw in code_lower for kw in ['cntk', 'from cntk', 'import cntk']):
+            return 'CNTK'
+        
+        # Detectron2 / MMDetection (Computer Vision)
+        if any(kw in code_lower for kw in ['detectron2', 'mmdetection', 'mmdet', 'mmcv']):
+            return 'Computer Vision Framework'
+        
+        # Stable Baselines / RLlib (Reinforcement Learning)
+        if any(kw in code_lower for kw in ['stable_baselines', 'rllib', 'gym', 'gymnasium', 'from gym', 'import gym']):
+            return 'Reinforcement Learning'
+        
+        # Generic neural network patterns
+        if any(kw in code_lower for kw in ['neural', 'network', 'layer', 'dense', 'conv', 'lstm', 'gru', 'rnn', 
+                                            'activation', 'relu', 'sigmoid', 'softmax', 'dropout', 'batchnorm',
+                                            'embedding', 'attention', 'transformer', 'encoder', 'decoder',
+                                            'forward', 'backward', 'gradient', 'optimizer', 'loss']):
+            return 'Generic Neural Network'
+        
+        # If nothing detected, still try to analyze with Gemini
+        return 'Unknown Framework'
     
     async def _analyze_with_gemini(self, code: str, framework: str) -> Dict[str, Any]:
         """Use Gemini AI to analyze ML/DL code structure"""
@@ -169,19 +244,16 @@ Rules:
 Return the analysis in the specified JSON format."""
         
         try:
-            # Initialize Gemini chat
-            chat = LlmChat(
-                api_key=self.api_key,
-                session_id=f"code-analysis-{uuid.uuid4()}",
-                system_message=system_prompt
-            ).with_model("gemini", "gemini-2.0-flash")
+            # Initialize Gemini
+            genai.configure(api_key=self.api_key)
+            model = genai.GenerativeModel(
+                model_name='gemini-2.0-flash',
+                system_instruction=system_prompt
+            )
             
             # Send message and get response
-            user_message = UserMessage(text=user_prompt)
-            response = await chat.send_message(user_message)
-            
-            # Parse JSON response
-            import json
+            response_obj = await model.generate_content_async(user_prompt)
+            response = response_obj.text
             
             # Clean response (remove markdown code blocks if present)
             response_text = response.strip()
@@ -199,12 +271,28 @@ Return the analysis in the specified JSON format."""
             return result
             
         except json.JSONDecodeError as e:
+            error_msg = f"Failed to parse AI response: {str(e)}"
             logging.error(f"JSON parsing error: {str(e)}")
-            logging.error(f"Response was: {response[:500]}")
+            if 'response' in locals():
+                logging.error(f"Response was: {response[:500]}")
             # Fallback to basic parsing
             return self._fallback_parse(code, framework)
         except Exception as e:
-            logging.error(f"Gemini API error: {str(e)}")
+            error_msg = str(e)
+            # Check for specific errors
+            if "API key" in error_msg or "PermissionDenied" in error_msg:
+                logging.error(f"Gemini API key error: {error_msg}")
+                return {
+                    'success': False,
+                    'error': 'Invalid or expired Gemini API key. Please update GEMINI_API_KEY in backend/.env',
+                    'framework': framework,
+                    'model_type': None,
+                    'layers': [],
+                    'connections': [],
+                    'architecture_summary': None,
+                    'warnings': []
+                }
+            logging.error(f"Gemini API error: {error_msg}")
             return self._fallback_parse(code, framework)
     
     def _add_node_positions(self, result: Dict[str, Any]) -> Dict[str, Any]:
